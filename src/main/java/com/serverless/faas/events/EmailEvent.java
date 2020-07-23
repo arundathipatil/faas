@@ -36,6 +36,7 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
 
     @Override
     public Object handleRequest(SNSEvent snsEvent, Context context) {
+        context.getLogger().log("inside lambda function...!!!!!!!!");
         TableCollection<ListTablesResult> dbTables = dynamoDB.listTables();
         Iterator<Table> iterator = dbTables.iterator();
 
