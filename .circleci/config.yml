@@ -1,9 +1,58 @@
-version: 2.1
-
-orbs:
-  maven: circleci/maven@0.0.12
-
-workflows:
-  maven_test:
-    jobs:
-      - maven/test # checkout, build, test, and upload test results
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/openjdk:8-jdk-stretch
+    steps:
+      - checkout
+      - run:
+          name: Install packages
+          command: |
+            sudo apt-get update && sudo apt-get install wget zip unzip python-pip python-dev build-essential -y
+            python --version
+      - run:
+          name: Install awscli
+          command: sudo pip install awscli
+      - run:
+          name: Compile Artifact
+          command: |
+            pwd
+            ls -ltr
+            echo "Compiling artifact package"
+            mvn clean install
+            cd target
+            ls -ltr
+            cd ../..
+            pwd
+      - run:
+          name: Compress Artifact
+          command: |
+            echo "The current build number of CircleCI serverless job is ${CIRCLE_BUILD_NUM}"
+            pwd
+            echo "current directory content"
+            ls -ltr
+            echo "Creating the artifact directory"
+            mkdir -p serverlessArtifact
+            echo "Changing directory to  serverless artifact"
+            cd serverlessArtifact
+            echo "Copying jar file to the serverless artifact directory"
+            cp ../target/faas-0.0.1-SNAPSHOT.jar .
+            echo "The directory contents are "
+            ls -ltr
+            pwd
+            echo "Inside root directory"
+            cd ..
+            pwd
+            ls -ltr
+      - run:
+          name: Upload Artifact to S3 Bucket
+          command: |
+            echo "Uploading artifact to S3 bucket ${BUCKET_NAME}"
+            cd serverlessArtifact
+            aws s3 cp faas-0.0.1-SNAPSHOT.jar s3://${BUCKET_NAME}
+            cd ..
+      - run:
+          name: Update Lambda on S3
+          command: |
+            echo "Invoking Lambda update function"
+            aws lambda update-function-code --function-name  email_lambda  --s3-bucket ${BUCKET_NAME} --s3-key faas-0.0.1-SNAPSHOT.jar --region ${AWS_REGION} > log.txt
