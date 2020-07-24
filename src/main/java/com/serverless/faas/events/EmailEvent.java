@@ -16,6 +16,7 @@ import com.amazonaws.services.lambda.runtime.events.SNSEvent;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClientBuilder;
 import com.amazonaws.services.simpleemail.model.*;
+import java.util.UUID;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,9 +63,17 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
         // http://example.com/reset?email=user@somedomain.com&token=4e163b8b-889a-4ce7-a3f7-61041e323c23
         long ttlTime = Instant.now().getEpochSecond() + 60*60;
         if ((item != null && Long.parseLong(item.get("TTL").toString()) < Instant.now().getEpochSecond() || item == null)) {
+            String token = UUID.randomUUID().toString();
             Item itemToAdd= new Item().withString("id", email).withLong("TTL", ttlTime);
-            dynamoDB.getTable("csye6225").putItem(itemToAdd);
-            String link = "http://prod.arundathipatil.com/reset?email="+email+"&token=4e163b8b-889a-4ce7-a3f7-61041e323c23";
+            PutItemSpec item2 = new PutItemSpec().withItem(new Item()
+                    .withPrimaryKey("email", email)
+                    .withString("token", token)
+                    .withLong("ttl", ttlTime));
+            dynamoDB.getTable("csye6225").putItem(item2);
+            String link = "http://prod.arundathipatil.com/reset?email="+email+"&token="+token;
+
+            context.getLogger().log("AWS request ID:" + context.getAwsRequestId());
+            context.getLogger().log("AWS message ID:" + snsEvent.getRecords().get(0).getSNS().getMessageId());
 
             Content content = new Content().withData(link);
             Body body = new Body().withText(content);
@@ -89,4 +98,5 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
         return null;
     }
 }
+
 
