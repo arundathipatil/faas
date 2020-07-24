@@ -55,4 +55,4 @@ jobs:
           name: Update Lambda on S3
           command: |
             echo "Invoking Lambda update function"
-            aws lambda update-function-code --function-name  email_lambda  --s3-bucket ${BUCKET_NAME} --s3-key faas-0.0.1-SNAPSHOT.jar --region ${AWS_REGION} > log.txt
+            aws lambda update-function-code --function-name  emailOnSNS  --s3-bucket ${BUCKET_NAME} --s3-key faas-0.0.1-SNAPSHOT.jar --region ${AWS_REGION} > log.txt
