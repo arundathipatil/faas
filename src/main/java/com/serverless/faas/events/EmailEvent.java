@@ -70,7 +70,7 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
         }
 
         // http://example.com/reset?email=user@somedomain.com&token=4e163b8b-889a-4ce7-a3f7-61041e323c23
-        long ttlTime = Instant.now().getEpochSecond() + 60*60;
+        long ttlTime = Instant.now().getEpochSecond() + 15*60;
         if ((item != null && Long.parseLong(item.get("TTL").toString()) < Instant.now().getEpochSecond() || item == null)) {
 //            String token = UUID.randomUUID().toString();
             Item itemToAdd= new Item().withString("id", email).withLong("TTL", ttlTime);
@@ -102,6 +102,8 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
                                         .withCharset("UTF-8").withData(EMAIL_SUBJECT)))
                         .withSource(SENDERS_EMAIL);
                 client.sendEmail(emailRequest);
+                context.getLogger().log("Email Request sent is : " + emailRequest.toString() + "---");
+                context.getLogger().log("Email sent to "+ email + " successfully!");
             } catch (Exception ex) {
                 context.getLogger().log(ex.getMessage());
             }
