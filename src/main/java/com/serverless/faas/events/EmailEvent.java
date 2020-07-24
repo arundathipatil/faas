@@ -75,7 +75,7 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
 //            String token = UUID.randomUUID().toString();
             Item itemToAdd= new Item().withString("id", email).withLong("TTL", ttlTime);
             PutItemSpec item2 = new PutItemSpec().withItem(new Item()
-                    .withPrimaryKey("email", email)
+                    .withPrimaryKey("id", email)
                     .withString("token", token)
                     .withLong("ttl", ttlTime));
             dynamoDB.getTable("csye6225").putItem(item2);
