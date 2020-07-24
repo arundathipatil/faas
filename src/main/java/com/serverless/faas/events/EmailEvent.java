@@ -28,6 +28,7 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
     private DynamoDB dynamoDB;
     private static String SENDERS_EMAIL = System.getenv("SendersEmail");
     private static final String EMAIL_SUBJECT="Reset Password";
+    private static final String EMAIL_BODY = "Click on below link to reset your password : ";
 
     public EmailEvent() {
         AmazonDynamoDBClient dynamoClient = new AmazonDynamoDBClient();
@@ -79,9 +80,9 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
                     .withString("token", token)
                     .withLong("ttl", ttlTime));
             dynamoDB.getTable("csye6225").putItem(item2);
-            String link = "http://prod.arundathipatil.com/reset?email="+email+"&token="+token;
-
-            context.getLogger().log("AWS request ID:" + context.getAwsRequestId());
+//            String link = "http://prod.arundathipatil.com/reset?email="+email+"&token="+token;
+            String link = token;
+                    context.getLogger().log("AWS request ID:" + context.getAwsRequestId());
             context.getLogger().log("AWS message ID:" + snsEvent.getRecords().get(0).getSNS().getMessageId());
 
             Content content = new Content().withData(link);
