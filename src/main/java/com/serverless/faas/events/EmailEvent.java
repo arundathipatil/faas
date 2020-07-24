@@ -26,7 +26,7 @@ import java.util.Iterator;
 
 public class EmailEvent implements RequestHandler<SNSEvent, Object> {
     private DynamoDB dynamoDB;
-    private static final String SENDERS_EMAIL = System.getenv("SendersEmail");
+    private static String SENDERS_EMAIL = System.getenv("SendersEmail");
     private static final String EMAIL_SUBJECT="Reset Password";
 
     public EmailEvent() {
@@ -38,22 +38,31 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
     @Override
     public Object handleRequest(SNSEvent snsEvent, Context context) {
         context.getLogger().log("inside lambda function...!!!!!!!!");
-        TableCollection<ListTablesResult> dbTables = dynamoDB.listTables();
-        Iterator<Table> iterator = dbTables.iterator();
-
-        Table table = dynamoDB.getTable("csye6225");
-
-        if(table == null) {
-            context.getLogger().log("Table no present");
-        }
 
         if(snsEvent.getRecords() == null) {
             context.getLogger().log("There are no events available");
             return null;
         }
 
+        if (dynamoDB == null) {
+            context.getLogger().log("Dynamo db object is null");
+        }
+        TableCollection<ListTablesResult> dbTables = dynamoDB.listTables();
+        Iterator<Table> iterator = dbTables.iterator();
+        while (iterator.hasNext()) {
+            Table table1 = iterator.next();
+            context.getLogger().log("Dynamodb table name:- " + table1.getTableName());
+        }
+        Table table = dynamoDB.getTable("csye6225");
+
+        if (table == null)
+            context.getLogger().log("Table not present in dynamoDB");
+
         String messageFromSQS =  snsEvent.getRecords().get(0).getSNS().getMessage();
         String email = messageFromSQS.split(",")[0];
+        context.getLogger().log("Sending email to "+ email);
+        String token = messageFromSQS.split(",")[1];
+        context.getLogger().log("Token: " + token + "token=========");
 
         Item item = dynamoDB.getTable("csye6225").getItem("id", email);
         if(item == null) {
@@ -63,7 +72,7 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
         // http://example.com/reset?email=user@somedomain.com&token=4e163b8b-889a-4ce7-a3f7-61041e323c23
         long ttlTime = Instant.now().getEpochSecond() + 60*60;
         if ((item != null && Long.parseLong(item.get("TTL").toString()) < Instant.now().getEpochSecond() || item == null)) {
-            String token = UUID.randomUUID().toString();
+//            String token = UUID.randomUUID().toString();
             Item itemToAdd= new Item().withString("id", email).withLong("TTL", ttlTime);
             PutItemSpec item2 = new PutItemSpec().withItem(new Item()
                     .withPrimaryKey("email", email)
@@ -78,6 +87,9 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
             Content content = new Content().withData(link);
             Body body = new Body().withText(content);
             try {
+                if (SENDERS_EMAIL == null) {
+                    SENDERS_EMAIL = "donotreply@prod.arundathipatil.me";
+                }
                 AmazonSimpleEmailService client =
                         AmazonSimpleEmailServiceClientBuilder.standard()
                                 .withRegion(Regions.US_EAST_1).build();
