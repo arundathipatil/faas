@@ -66,7 +66,6 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
         String email = messageFromSQS.split(",")[0];
         context.getLogger().log("Sending email to "+ email);
 //        String token = messageFromSQS.split(",")[1];
-//        context.getLogger().log("Token: " + token + "token=========");
 
         Item item = dynamoDB.getTable("csye6225").getItem("id", email);
 
