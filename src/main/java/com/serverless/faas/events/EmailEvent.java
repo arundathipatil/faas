@@ -29,6 +29,9 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
     private static String SENDERS_EMAIL = System.getenv("SendersEmail");
     private static final String EMAIL_SUBJECT="Reset Password";
     private static final String EMAIL_BODY = "Click on below link to reset your password : ";
+    public String domain = "prod.arundathipatil.me";
+    public String SENDER_EMAIL = "no-reply@" + domain;
+
 
     public EmailEvent() {
         AmazonDynamoDBClient dynamoClient = new AmazonDynamoDBClient();
@@ -62,27 +65,25 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
         String messageFromSQS =  snsEvent.getRecords().get(0).getSNS().getMessage();
         String email = messageFromSQS.split(",")[0];
         context.getLogger().log("Sending email to "+ email);
-        String token = messageFromSQS.split(",")[1];
-        context.getLogger().log("Token: " + token + "token=========");
+//        String token = messageFromSQS.split(",")[1];
+//        context.getLogger().log("Token: " + token + "token=========");
 
         Item item = dynamoDB.getTable("csye6225").getItem("id", email);
-        if(item == null) {
 
-        }
-
-        // http://example.com/reset?email=user@somedomain.com&token=4e163b8b-889a-4ce7-a3f7-61041e323c23
         long ttlTime = Instant.now().getEpochSecond() + 15*60;
         if ((item != null && Long.parseLong(item.get("ttl").toString()) < Instant.now().getEpochSecond() || item == null)) {
-//            String token = UUID.randomUUID().toString();
-//            Item itemToAdd= new Item().withString("id", email).withLong("TTL", ttlTime);
+            String token = UUID.randomUUID().toString();
             PutItemSpec item2 = new PutItemSpec().withItem(new Item()
                     .withPrimaryKey("id", email)
                     .withString("token", token)
                     .withLong("ttl", ttlTime));
             dynamoDB.getTable("csye6225").putItem(item2);
-//            String link = "http://prod.arundathipatil.com/reset?email="+email+"&token="+token;
-            String link = token;
-                    context.getLogger().log("AWS request ID:" + context.getAwsRequestId());
+//            String link = token;
+
+            String link = "";
+            link += "<p><a href='#'>http://" + domain +"/reset?email="+email+"&token="+token+ "</a></p><br>";
+            link =  link.replaceAll("\"","");
+            context.getLogger().log("AWS request ID:" + context.getAwsRequestId());
             context.getLogger().log("AWS message ID:" + snsEvent.getRecords().get(0).getSNS().getMessageId());
 
             Content content = new Content().withData(link);
@@ -98,10 +99,13 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
                         .withDestination(
                                 new Destination().withToAddresses(email))
                         .withMessage(new Message()
-                                .withBody(body)
+                                .withBody(new Body()
+                                        .withHtml(new Content()
+                                                .withCharset("UTF-8")
+                                                .withData( EMAIL_BODY +" <br/>" + link)))
                                 .withSubject(new Content()
                                         .withCharset("UTF-8").withData(EMAIL_SUBJECT)))
-                        .withSource(SENDERS_EMAIL);
+                        .withSource(SENDER_EMAIL);
                 client.sendEmail(emailRequest);
                 context.getLogger().log("Email Request sent is : " + emailRequest.toString() + "---");
                 context.getLogger().log("Email sent to "+ email + " successfully!");
