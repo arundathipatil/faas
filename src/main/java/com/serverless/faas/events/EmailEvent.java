@@ -80,7 +80,7 @@ public class EmailEvent implements RequestHandler<SNSEvent, Object> {
 //            String link = token;
 
             String link = "";
-            link += "<p><a href='#'>http://" + domain +"/reset?email="+email+"&token="+token+ "</a></p><br>";
+            link += "<p><a href='#'>https://" + domain +"/reset?email="+email+"&token="+token+ "</a></p><br>";
             link =  link.replaceAll("\"","");
             context.getLogger().log("AWS request ID:" + context.getAwsRequestId());
             context.getLogger().log("AWS message ID:" + snsEvent.getRecords().get(0).getSNS().getMessageId());
